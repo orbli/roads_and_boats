@@ -1,0 +1,3 @@
+
+class Wonder:
+    None
