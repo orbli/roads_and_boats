@@ -1,9 +1,13 @@
 import copy
+
+from pyrsistent import discard
+from control.game_player import Research
 from control.game_tokens import BuildingToken, ResourceToken, PlayerToken
 from control.game_tile import Terrain
 from control.phase.common import load_goods, load_transporter, unload_goods
 from .phase import Phase
 import random
+from collections import defaultdict
 
 def mine_production(reserve, players):
     if len(reserve) == 0:
@@ -75,7 +79,7 @@ class Production(Phase):
     waiting_user_input_var = False
     current_player_turn_order_index = None
     subphase = None
-    tile_activations = {}
+    tile_activations = None
     # subphase 2
     reverse_action_stack = []
     # subphase 3
@@ -83,6 +87,7 @@ class Production(Phase):
 
     def __init__(self):
         self.subphase = 1
+        self.tile_activations = defaultdict(lambda: 0)
     
     def waiting_user_input(self):
         return self.waiting_user_input_var
@@ -184,6 +189,9 @@ class Production(Phase):
                 '2|5': [
                     ['unload', ResourceToken.BOARDS, 1, 'donkey 4'],
                     ['activate', ['wagon 1']], # produce transporter, remove wagon 1 if cap
+                ],
+                '3|6': [
+                    ['activate', [None, [0,1]]] # [dont discard transporter, water transporter at direction[0,1] coast]
                 ]
             },
             'upgrades': ['5|8'],
@@ -196,7 +204,8 @@ class Production(Phase):
             if phase_name != 'player_actions':
                 raise Exception("Wrong subphase")
             tile_snapshot = {}
-            tile_activation = copy.deepcopy(self.tile_activations)
+            tile_activation_snapshot = copy.deepcopy(self.tile_activations)
+            player_snapshot = copy.deepcopy(game_state.players[player])
             try:
                 researches = set()
                 for tile_coor_str, tile_cmds in data['actions'].items():
@@ -226,17 +235,19 @@ class Production(Phase):
                                 if arg not in secondary_production_config[tile.building][0]:
                                     raise Exception("Wrong resource")
                                 self.tile_secondary_production(tile_coor, tile, arg[0])
-                            if tile.building == BuildingToken.WAGONFACTORY:
+                            elif tile.building == BuildingToken.WAGONFACTORY:
                                 if self.tile_activations[tile_coor] >= 1:
                                     raise Exception("Tile cannot be activated further")
                                 found = False
                                 for player_token in tile.player_tokens:
-                                    if player_token[0] == PlayerToken.DONKEY and player_token[1] == player and player_token[3] == {}:
+                                    transport_type, transport_owner, _, transport_goods, _ = player_token
+                                    if transport_type == PlayerToken.DONKEY and transport_owner == player and transport_goods == {}:
                                         tile.player_tokens.remove(player_token)
                                         tile.player_tokens.append([
                                             PlayerToken.WAGON, 
                                             player, 
                                             game_state.players[player].add_new_transport(PlayerToken.WAGON),
+                                            {},
                                             {},
                                         ])
                                         self.tile_activations[tile_coor] += 1
@@ -244,32 +255,97 @@ class Production(Phase):
                                         break
                                 if not found:
                                     raise Exception("No donkey to upgrade")
-                            if tile.building == BuildingToken.TRUCKFACTORY:
+                            elif tile.building == BuildingToken.TRUCKFACTORY:
                                 if self.tile_activations[tile_coor] >= 1:
                                     raise Exception("Tile cannot be activated further")
-                                found = False
-                                for player_token in tile.player_tokens:
-                                    if player_token[0] == PlayerToken.WAGON and player_token[1] == player and player_token[3] == {}:
-                                        tile.player_tokens.remove(player_token)
-                                        tile.player_tokens.append([
-                                            PlayerToken.TRUCK, 
-                                            player, 
-                                            game_state.players[player].add_new_transport(PlayerToken.TRUCK),
-                                            {},
-                                        ])
+                                if len(arg) != 0:
+                                    found = False
+                                    for player_token in tile.player_tokens:
+                                        transport_type, transport_owner, transport_name, transport_goods, _ = player_token
+                                        if transport_owner == player and transport_name == arg[0] and transport_goods == {}:
+                                            game_state.players[player].remove_transport(transport_type)
+                                            tile.player_tokens.remove(player_token)
+                                            found = True
+                                            break
+                                    if not found:
+                                        raise Exception("No existing transporter to discard")
+                                self.tile_activations[tile_coor] += 1
+                                tile.player_tokens.append([
+                                    PlayerToken.TRUCK, 
+                                    player, 
+                                    game_state.players[player].add_new_transport(PlayerToken.TRUCK),
+                                    {},
+                                ])
+                            else: # produce water transports
+                                water_transporter_config = [
+                                    (BuildingToken.RAFTFACTORY, PlayerToken.RAFT),
+                                    (BuildingToken.ROWBOATFACTORY, PlayerToken.ROWBOAT),
+                                    (BuildingToken.STEAMERFACTORY, PlayerToken.STEAMSHIP),
+                                ]
+                                for building, new_transport_type in water_transporter_config:
+                                    if tile.building == building:
+                                        if self.tile_activations[tile_coor] >= 1:
+                                            raise Exception("Tile cannot be activated further")
+                                        discard_transporter, direction = arg
+                                        if discard_transporter is not None:
+                                            found = False
+                                            for player_token in tile.player_tokens:
+                                                transport_type, transport_owner, transport_name, transport_goods, _ = player_token
+                                                if transport_owner == player and transport_name == arg[0] and transport_goods == {}:
+                                                    game_state.players[player].remove_transport(transport_type)
+                                                    tile.player_tokens.remove(player_token)
+                                                    found = True
+                                                    break
+                                            if not found:
+                                                raise Exception("No existing transporter to discard")
+                                        next_tile_coor = tile_coor[0] + direction[0], tile_coor[1] + direction[1]
+                                        if game_state.map.get_tile(next_tile_coor).terrain != Terrain.WATER:
+                                            raise Exception("Not coast direction")
                                         self.tile_activations[tile_coor] += 1
-                                        found = True
-                                        break
-                                if not found:
-                                    raise Exception("No wagon to upgrade")
-                            # TODO: last edit - other transport factories
+                                        tile.player_tokens.append([
+                                            new_transport_type, 
+                                            player, 
+                                            game_state.players[player].add_new_transport(new_transport_type),
+                                            {},
+                                            {'direction': direction},
+                                        ])
                 
-                # TODO: if research transporter upgrade factories
-                game_state.players[player].researches.update(researches)
+                if researches:
+                    if 'upgrades' in command:
+                        land_upgrade = None
+                        sea_upgrade = None
+                        if Research.TRUCK in researches:
+                            land_upgrade = Research.TRUCK
+                        if Research.ROWBOAT in researches:
+                            sea_upgrade = Research.ROWBOAT
+                        if Research.STEAMSHIP in researches:
+                            sea_upgrade = Research.STEAMSHIP
+                        for tile_coor_str in command['upgrades']:
+                            tile_coor = tuple(map(int, tile_coor_str.split('|')))
+                            tile = game_state.map.get_tile(tile_coor)
+                            tile_snapshot[tile_coor] = tile.export_state()
+                            found = False
+                            for player_token in tile.player_tokens:
+                                if player_token[1] == player:
+                                    found = True
+                                    break
+                            if not found:
+                                raise Exception("No active player token on tile")
+                            if tile.building == BuildingToken.WAGONFACTORY:
+                                if land_upgrade is None:
+                                    raise Exception("No land upgrade researched")
+                                tile.building = land_upgrade
+                            if tile.building >= 13: # 13=raft 14=rowboat 15=steamer 
+                                if sea_upgrade is None:
+                                    raise Exception("No sea upgrade researched")
+                                tile.building = sea_upgrade
+                            
+                    game_state.players[player].researches.update(researches)
             except Exception as e:
                 for coor, tile in tile_snapshot.items():
                     game_state.map.set_tile(coor, tile)
-                self.tile_activation = tile_activation
+                self.tile_activation = tile_activation_snapshot
+                game_state.players[player] = player_snapshot
                 raise e
             self.current_player_turn_order_index += 1
             if self.current_player_turn_order_index == len(game_state.players):

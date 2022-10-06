@@ -41,6 +41,7 @@ class Setup(Phase):
                 game_tokens.PlayerToken.DONKEY, 
                 self.current_player, 
                 game_state.players[self.current_player].add_new_transport(game_tokens.PlayerToken.DONKEY), 
+                {},
                 {}
             ] for _ in range(3)
         ]

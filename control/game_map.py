@@ -78,7 +78,7 @@ class GameMap:
     def adjacent_coordinates(self, coordinate):
         x = coordinate[0]
         y = coordinate[1]
-        if x % 2 == 1:
+        if y % 2 == 1:
             """
             0) 0  --- (1) --- (2) --- 3
             1)    (0) ---  1  --- (2)
@@ -92,7 +92,7 @@ class GameMap:
                 [x, y-1],
                 [x+1, y-1],
             ]
-        else: # x % 2 == 0
+        else: # y % 2 == 0
             """
             0)  0  ---  1  ---  2  ---  3
             1)     (0) --- (1) ---  2
