@@ -4,6 +4,7 @@ from .game_tile import GameTile, Terrain
 
 @pytest.fixture
 def game_map_config():
+    # ARiverRunsThroughItNoRiver
     map_size = (5, 3)
     map_assignment = {
         (0,0): GameTile(Terrain.MOUNTAIN),
@@ -22,12 +23,19 @@ def game_map_config():
 
 def test_create_map(game_map_config):
     map_size, map_assignment = game_map_config
-    game_map = GameMap(map_size[0], map_size[1])
+    game_map = GameMap.with_map(map_size, map_assignment)
     game_map.assign_tiles(map_assignment)
 
-@pytest.fixture
-def game_map(game_map_config):
+def test_export_import_map(game_map_config):
     map_size, map_assignment = game_map_config
-    game_map = GameMap(map_size[0], map_size[1])
+    game_map = GameMap.with_map(map_size, map_assignment)
     game_map.assign_tiles(map_assignment)
-    return game_map
+    exported_map = game_map.export_state()
+
+    # assert no exception
+    import json
+    json.dumps(exported_map)
+
+    imported_map = GameMap.build_from_state(exported_map)
+    for coor, tile in imported_map.iterate_map():
+        assert game_map[coor].terrain == tile.terrain

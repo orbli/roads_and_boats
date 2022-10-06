@@ -1,6 +1,7 @@
 from .phase import Phase
-from control import game_map, game_tokens, game_tile
+from control import game_tokens, game_tile
 from .turn_order import TurnOrder
+from .production import Production
 
 class Setup(Phase):
     turn_order = None
@@ -15,10 +16,12 @@ class Setup(Phase):
 
     # command example = {'setup': [0, [1,3]]} // [player, [x,y]]
     def process_command(self, game_state, command):
-        if command['setup'][0] != self.current_player:
+        player, coor = command['setup']
+
+        if player != self.current_player:
             raise Exception('Wrong player')
 
-        expect_start_tile = game_state.map.get_tile(command['setup'][1])
+        expect_start_tile = game_state.map.get_tile(coor)
 
         if expect_start_tile is None:
             raise Exception('Start tile is out of bounds')
@@ -29,7 +32,7 @@ class Setup(Phase):
         if expect_start_tile.home is not None:
             raise Exception('Start tile is already occupied')
 
-        for neighbor in game_state.map.adjacent_coordinates(command['setup'][1]):
+        for neighbor in game_state.map.adjacent_coordinates(coor):
             if game_state.map.get_tile(neighbor).home is not None:
                 raise Exception('Start tile has neighbor occupied')
 
@@ -37,7 +40,7 @@ class Setup(Phase):
             [
                 game_tokens.PlayerToken.DONKEY, 
                 self.current_player, 
-                game_state.players[self.current_player].get_new_transport_name(game_tokens.PlayerToken.DONKEY), 
+                game_state.players[self.current_player].add_new_transport(game_tokens.PlayerToken.DONKEY), 
                 {}
             ] for _ in range(3)
         ]
@@ -55,5 +58,5 @@ class Setup(Phase):
             self.current_player = self.turn_order[self.turn_order.index(self.current_player) + 1]
             return self
         else:
-            return TurnOrder(game_state.pray_order, 1)
+            return None
         

@@ -4,11 +4,55 @@ from .game_tile import GameTile
 
 class GameMap:
     map = None
+    boundaries = None
 
-    def __init__(self, width, height):
-        self.map = []
-        for i in range(height):
-            self.map.append([None] * width)
+    # @classmethod
+    # def from_json(cls, json):
+
+    def export_state(self):
+        map = {}
+        for coordinate, tile in self.iterate_map():
+            x, y = coordinate
+            map[f"{x}|{y}"] = tile.export_state()
+        boundaries = {}
+        for coors, boundary in self.boundaries.items():
+            coors_set = set(coors)
+            coor1 = coors_set.pop()
+            coor2 = coors_set.pop()
+            boundaries[f"{coor1[0]}|{coor1[1]},{coor2[0]}|{coor2[1]}"] = boundary
+        return {
+            'map_size': [len(self.map[0]), len(self.map)],
+            'map': map,
+            'boundaries': boundaries,
+        }
+
+    @classmethod
+    def build_from_state(cls, state):
+        rt = cls()
+        rt.set_map_size(state['map_size'])
+        for coordinate, tile_state in state['map'].items():
+            x, y = map(int, coordinate.split('|'))
+            rt.map[y][x] = GameTile.build_from_state(tile_state)
+        for coors, boundary in state['boundaries'].items():
+            coors = coors.split(',')
+            coor1 = tuple(map(int, coors[0].split('|')))
+            coor2 = tuple(map(int, coors[1].split('|')))
+            rt.boundaries[frozenset({coor1, coor2})] = boundary
+        return rt
+
+    def __init__(self):
+        self.boundaries = {}
+    
+    def set_map_size(self, map_size):
+        width, height = map_size
+        self.map = [ [None] * width for _ in range(height) ]
+            
+    @classmethod
+    def with_map(cls, map_size, assignments):
+        instance = cls()
+        instance.set_map_size(map_size)
+        instance.assign_tiles(assignments)
+        return instance
 
     def assign_tiles(self, assignments):
         for coordinate, tile in assignments.items():
@@ -21,8 +65,15 @@ class GameMap:
                     yield [x, y], self.map[y][x]
         return None
 
+    def __getitem__(self, key) -> GameTile:
+        return self.get_tile(key)
+
     def get_tile(self, coordinate) -> GameTile:
-        return self.map[coordinate[1]][coordinate[0]]
+        x, y = coordinate
+        return self.map[y][x]
+
+    def set_tile(self, coordinate, tile_state):
+        self.get_tile(coordinate).import_state(tile_state)
 
     def adjacent_coordinates(self, coordinate):
         x = coordinate[0]

@@ -1,3 +1,4 @@
+from .phase import Phase
 
-class Movement:
+class Movement(Phase):
     None
