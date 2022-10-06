@@ -301,6 +301,11 @@ class Production(Phase):
                                         next_tile_coor = tile_coor[0] + direction[0], tile_coor[1] + direction[1]
                                         if game_state.map.get_tile(next_tile_coor).terrain != Terrain.WATER:
                                             raise Exception("Not coast direction")
+                                        boundary = frozenset({tile_coor, next_tile_coor})
+                                        if boundary in self.boundaries:
+                                            wall_owner, _ = self.boundaries[boundary]
+                                            if wall_owner != player and wall_owner != None:
+                                                raise Exception("Coastal line is blocked")
                                         self.tile_activations[tile_coor] += 1
                                         tile.player_tokens.append([
                                             new_transport_type, 
