@@ -214,10 +214,10 @@ class Production(Phase):
                     tile_snapshot[tile_coor] = tile.export_state()
                     for tile_cmd in tile_cmds:
                         cmd, arg = tile_cmd
-                        if cmd == 'unload':
+                        if cmd == 'load':
                             transporter_name, goods = arg
                             load_goods(tile, player, transporter_name, goods)
-                        elif cmd == 'load':
+                        elif cmd == 'unload':
                             transporter_name, goods = arg
                             unloaded_goods = unload_goods(tile, player, transporter_name, goods)
                             tile.add_resources(unloaded_goods)

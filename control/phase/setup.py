@@ -50,6 +50,7 @@ class Setup(Phase):
             game_tokens.ResourceToken.STONE: 1,
             game_tokens.ResourceToken.GOOSE: 2,
         }
+        game_state.players[self.current_player].home = coor
         expect_start_tile.home = self.current_player
 
         return self.next_state(game_state)

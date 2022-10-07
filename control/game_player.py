@@ -22,11 +22,13 @@ class GamePlayer:
     def __init__(self):
         self.transporter_count = {}
         self.researches = set()
+        self.home = None
 
     def export_state(self):
         return {
             'transporter_count': self.transporter_count,
             "researches": list(self.researches),
+            "home": list(self.home),
         }
 
     # return name of transport
