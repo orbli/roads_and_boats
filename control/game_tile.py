@@ -9,7 +9,7 @@ class Terrain:
 
 class GameTile:
     terrain = None
-    player_tokens = [] # transporter_type, owner, transporter_name, carrying_goods, extra_info = player_tokens[]
+    player_tokens = [] # transporter_type, owner, transporter_name, carrying_goods{} / playertoken[], docking_at
     # carrying_goods = {resource_type: resource_amount} -> carry resource
     # carrying_goods = [transporter_type, transporter_owner, transporter_name, {}] -> carrying transporter
     # extra_info: water transporter - need to record which coastline it is on; river: need to record which side the land transporter is on

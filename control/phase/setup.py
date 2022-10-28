@@ -42,7 +42,7 @@ class Setup(Phase):
                 self.current_player, 
                 game_state.players[self.current_player].add_new_transport(game_tokens.PlayerToken.DONKEY), 
                 {},
-                {}
+                None
             ] for _ in range(3)
         ]
         expect_start_tile.resource_tokens = {

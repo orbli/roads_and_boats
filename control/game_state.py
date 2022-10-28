@@ -58,7 +58,7 @@ class GameState:
         return len(self.wonder) > 44
 
     def game_end(self):
-        return len(self.wonder) == [-1, -1, 62, 66, 69, 76, 83][len(self.players)]
+        return len(self.wonder) == [-1, -1, 62, 66, 69, 76, 83][len(self.players)] or self.wonder.count(-1) >= 33
     
     def wonder_score(self):
         rt = [0] * len(self.players)

@@ -1,4 +1,5 @@
 import copy
+from xml.dom import NotFoundErr
 
 from pyrsistent import discard
 from control.game_player import Research
@@ -248,7 +249,7 @@ class Production(Phase):
                                             player, 
                                             game_state.players[player].add_new_transport(PlayerToken.WAGON),
                                             {},
-                                            {},
+                                            None
                                         ])
                                         self.tile_activations[tile_coor] += 1
                                         found = True

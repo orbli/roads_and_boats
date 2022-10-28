@@ -4,7 +4,7 @@ from .game_tile import GameTile
 
 class GameMap:
     map = None
-    boundaries = None # { frozenset({(x1,y1),(x2,y2)}): [wall_player_no, has_road(T/F)] })]}
+    boundaries = None # { frozenset({(x1,y1),(x2,y2)}): [[wall_player_no, level], has_road(T/F)] })]}
 
     # @classmethod
     # def from_json(cls, json):
