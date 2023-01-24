@@ -180,7 +180,7 @@ class Building(Phase):
                         target = cmd[1]
                         if target not in game_state.map.adjacent_coordinates(tile_coor):
                             raise Exception('Target tile is not adjacent')
-                        if tile.terrain == Terrain.WATER or game_state.map[target].terrain == Terrain.WATER:
+                        if tile.terrain == Terrain.WATER and game_state.map[target].terrain == Terrain.WATER:
                             raise Exception('Cannot build wall on water')
                         boundary = frozenset({tuple(target), tuple(tile_coor)})
                         if boundary not in game_state.map.boundaries:
