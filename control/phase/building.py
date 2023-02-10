@@ -63,7 +63,7 @@ class Building(Phase):
     def process(self, game_state):
         if self.waiting_user_input is None:
             self.waiting_user_input = game_state.turn_order[self.current_processing_player_order]
-            return self
+        return self
         
     """
     cmd: {
